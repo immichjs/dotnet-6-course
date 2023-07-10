@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
+var configuration = app.Configuration;
+ProductRepository.Init(configuration);
 
 app.MapPost("/products", (Product product) =>
 {
@@ -10,7 +12,7 @@ app.MapPost("/products", (Product product) =>
     return Results.Created($"/products/{product.Code}", product);
 });
 
-app.MapGet("/products", ([FromQuery] string dateStart, [FromQuery] string dateEnd) =>
+app.MapGet("/products", () =>
 {
     var products = ProductRepository.Products;
 
@@ -54,6 +56,14 @@ app.MapDelete("/products/{code}", ([FromRoute] int code) =>
     return Results.Ok();
 });
 
+app.MapGet("/configuration/database", (IConfiguration configuration) =>
+{
+    int PORT = Convert.ToInt32(configuration["database:port"]);
+    string CONNECTION = configuration["database:connection"];
+
+    return Results.Ok($"{CONNECTION}/{PORT}");
+});
+
 
 app.Run();
 
@@ -66,6 +76,13 @@ public class Product
 public static class ProductRepository
 {
     public static List<Product> Products { get; set; }
+
+    public static void Init(IConfiguration configuration)
+    {
+        var products = configuration.GetSection("Products").Get<List<Product>>();
+
+        Products = products;
+    }
 
     public static void Add(Product product)
     {
